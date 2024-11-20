@@ -144,35 +144,36 @@ public:
         return true;
     }
 
-    // Sumar matrices
     SparseMatrix<T> operator+(const SparseMatrix<T>& other) const {
         if (n_rows != other.n_rows || n_cols != other.n_cols) {
             throw invalid_argument("Dimensiones no compatibles para la suma.");
         }
 
         SparseMatrix<T> result(n_rows, n_cols);
-        for (int i = 0; i < n_rows; ++i) {
-            Node<T>* current1 = rows[i];
-            Node<T>* current2 = other.rows[i];
 
+        // Recorrer todas las filas de esta matriz
+        for (int i = 0; i < n_rows; ++i) {
+            Node<T>* current1 = rows[i] ? rows[i] : nullptr;
+            Node<T>* current2 = other.rows[i] ? other.rows[i] : nullptr;
+
+            // Mientras haya nodos en cualquiera de las dos filas
             while (current1 || current2) {
                 if (current1 && (!current2 || current1->pos_col < current2->pos_col)) {
                     result.insert(current1->data, current1->pos_row, current1->pos_col);
-                    current1 = current1->next_col;
+                    current1 = current1->next_col != rows[i] ? current1->next_col : nullptr;
                 } else if (current2 && (!current1 || current2->pos_col < current1->pos_col)) {
                     result.insert(current2->data, current2->pos_row, current2->pos_col);
-                    current2 = current2->next_col;
+                    current2 = current2->next_col != other.rows[i] ? current2->next_col : nullptr;
                 } else {
                     result.insert(current1->data + current2->data, current1->pos_row, current1->pos_col);
-                    current1 = current1->next_col;
-                    current2 = current2->next_col;
+                    current1 = current1->next_col != rows[i] ? current1->next_col : nullptr;
+                    current2 = current2->next_col != other.rows[i] ? current2->next_col : nullptr;
                 }
             }
         }
         return result;
     }
 
-    // Multiplicar matrices
     SparseMatrix<T> operator*(const SparseMatrix<T>& other) const {
         if (n_cols != other.n_rows) {
             throw invalid_argument("Dimensiones no compatibles para la multiplicación.");
@@ -193,11 +194,11 @@ public:
                                 if (colNode->pos_row == rowNode->pos_col) {
                                     sum += rowNode->data * colNode->data;
                                 }
-                                colNode = colNode->next_row;
-                            } while (colNode != other.cols[j]);
+                                colNode = colNode->next_row != other.cols[j] ? colNode->next_row : nullptr;
+                            } while (colNode);
                         }
-                        rowNode = rowNode->next_col;
-                    } while (rowNode != rows[i]);
+                        rowNode = rowNode->next_col != rows[i] ? rowNode->next_col : nullptr;
+                    } while (rowNode);
                 }
 
                 if (sum != T()) {
@@ -207,6 +208,7 @@ public:
         }
         return result;
     }
+
 
     // Mostrar matriz
     void display() {
